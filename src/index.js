@@ -41,6 +41,7 @@ function setParams(url) {
 }
 
 app.post('/register', async (c) => {
+	console.log(c.env);
 	setParams(c.req.url);
 
 	const uname = (await c.req.json()).username;
@@ -113,6 +114,65 @@ app.post('/register/complete', async (c) => {
 				credentialPublicKey: Array.from(credentialPublicKey),
 			});
 		}
+		await c.env.KV.put(user.username, JSON.stringify(user));
+	}
+
+	session.set('challenge', null);
+	return c.json({ verified });
+});
+
+app.post('/login', async (c) => {
+	const user = JSON.parse(await c.env.KV.get((await c.req.json()).username));
+
+	const opts = {
+		rpID,
+		allowCredentials: user?.passKeys.map((key) => ({
+			id: key.id,
+			transports: key.transports,
+		})),
+	};
+	const options = await generateAuthenticationOptions(opts);
+
+	const session = c.get('session');
+	session.set('challenge', JSON.stringify({ user, options }));
+	return c.json(options);
+});
+
+app.post('/login/complete', async (c) => {
+	const body = await c.req.json();
+	const session = c.get('session');
+
+	const { options, user } = JSON.parse(session.get('challenge'));
+
+	const passKey = user.passKeys.find((key) => key.id === body.id);
+	if (!passKey) {
+		c.status(400);
+		return c.json({ error: `Could not find passkey ${body.id} for user ${user.id}` });
+	}
+
+	const opts = {
+		response: body,
+		expectedOrigin,
+		expectedRPID: rpID,
+		authenticator: passKey,
+		requireUserVerification: false,
+		expectedChallenge: options.challenge,
+	};
+
+	let verification;
+	try {
+		verification = await verifyAuthenticationResponse(opts);
+	} catch (error) {
+		console.error(error);
+		c.status(400);
+		return c.json({ error: error.message });
+	}
+
+	const { verified, authenticationInfo } = verification;
+
+	if (verified) {
+		passKey.counter = authenticationInfo.newCounter;
+		user.passKeys = user.passKeys.map((i) => (i.id == passKey.id ? passKey : i));
 		await c.env.KV.put(user.username, JSON.stringify(user));
 	}
 
