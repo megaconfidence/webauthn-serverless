@@ -1,6 +1,7 @@
 # webauthn
 
 A demo illustrating how to use the WebAuthn API for authentication flows.
+![Screen Recording 2024-04-28 at 1 34 36 PM](https://github.com/megaconfidence/webauthn-serverles/assets/17744578/1fdf03f6-05e5-4563-823e-9cd06ecb62a5)
 
 ## Usage
 
