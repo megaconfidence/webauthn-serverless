@@ -14,8 +14,8 @@ so remember to provide a fallback in your implementation.
 To set up this project locally, run the following commands on a terminal:
 
 ```sh
-git clone https://github.com/megaconfidence/webauthn-serverles.git
-cd webauthn-serverles
+git clone https://github.com/megaconfidence/webauthn-serverless.git
+cd webauthn-serverless
 npm i
 npm start
 ```
