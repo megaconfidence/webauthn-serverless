@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import manifest from '__STATIC_CONTENT_MANIFEST';
 import { serveStatic } from 'hono/cloudflare-workers';
-import { sessionMiddleware, CookieStore, Session } from 'hono-sessions';
+import { sessionMiddleware, CookieStore } from 'hono-sessions';
 import {
 	verifyRegistrationResponse,
 	generateRegistrationOptions,
@@ -32,18 +32,18 @@ let rpID = '';
 let expectedOrigin = '';
 let rpName = 'WebAuthn Tutorial';
 
-function setParams(url) {
-	if (isConfigured) return;
-	const { origin, hostname } = new URL(url);
+const setVars = async (c, next) => {
+	if (isConfigured) return await next();
+	const { origin, hostname } = new URL(c.req.url);
 	rpID = hostname;
 	expectedOrigin = origin;
 	isConfigured = true;
-}
+	return await next();
+};
+
+app.use(setVars);
 
 app.post('/register', async (c) => {
-	console.log(c.env);
-	setParams(c.req.url);
-
 	const uname = (await c.req.json()).username;
 	const user = JSON.parse(await c.env.KV.get(uname)) || {
 		passKeys: [],
